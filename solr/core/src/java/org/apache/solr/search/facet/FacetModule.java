@@ -146,7 +146,7 @@ public class FacetModule extends SearchComponent {
       fcontext.setDebugInfo(fdebug);
       fdebug.setReqDescription(facetState.facetRequest.getFacetDescription());
       fdebug.setProcessor(fproc.getClass().getSimpleName());
-     
+
       final RTimer timer = new RTimer();
       fproc.process();
       long timeElapsed = (long) timer.getTime();
@@ -156,7 +156,7 @@ public class FacetModule extends SearchComponent {
     } else {
       fproc.process();
     }
-    
+
     rb.rsp.add("facets", fproc.getResponse());
   }
 
@@ -355,84 +355,6 @@ class FacetComponentState {
   FacetMerger merger;
   FacetMerger.Context mcontext;
 }
-
-// base class for facet functions that can be used in a sort
-abstract class FacetSortableMerger extends FacetMerger {
-  public void prepareSort() {
-  }
-
-  @Override
-  public void finish(Context mcontext) {
-    // nothing to do for simple stats...
-  }
-
-  /** Return the normal comparison sort order.  The sort direction is only to be used in special circumstances (such as making NaN sort
-   * last regardless of sort order.)  Normal sorters do not need to pay attention to direction.
-   */
-  public abstract int compareTo(FacetSortableMerger other, FacetRequest.SortDirection direction);
-}
-
-abstract class FacetDoubleMerger extends FacetSortableMerger {
-  @Override
-  public abstract void merge(Object facetResult, Context mcontext);
-
-  protected abstract double getDouble();
-
-  @Override
-  public Object getMergedResult() {
-    return getDouble();
-  }
-
-
-  @Override
-  public int compareTo(FacetSortableMerger other, FacetRequest.SortDirection direction) {
-    return compare(getDouble(), ((FacetDoubleMerger)other).getDouble(), direction);
-  }
-
-
-  public static int compare(double a, double b, FacetRequest.SortDirection direction) {
-    if (a < b) return -1;
-    if (a > b) return 1;
-
-    if (a != a) {  // a==NaN
-      if (b != b) {
-        return 0;  // both NaN
-      }
-      return -1 * direction.getMultiplier();  // asc==-1, so this will put NaN at end of sort
-    }
-
-    if (b != b) { // b is NaN so a is greater
-      return 1 * direction.getMultiplier();  // if sorting asc, make a less so NaN is at end
-    }
-
-    // consider +-0 to be equal
-    return 0;
-  }
-}
-
-
-
-
-
-class FacetLongMerger extends FacetSortableMerger {
-  long val;
-
-  @Override
-  public void merge(Object facetResult, Context mcontext) {
-    val += ((Number)facetResult).longValue();
-  }
-
-  @Override
-  public Object getMergedResult() {
-    return val;
-  }
-
-  @Override
-  public int compareTo(FacetSortableMerger other, FacetRequest.SortDirection direction) {
-    return Long.compare(val, ((FacetLongMerger)other).val);
-  }
-}
-
 
 // base class for facets that create buckets (and can hence have sub-facets)
 abstract class FacetBucketMerger<FacetRequestT extends FacetRequest> extends FacetMerger {

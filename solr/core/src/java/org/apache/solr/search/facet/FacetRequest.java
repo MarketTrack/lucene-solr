@@ -108,18 +108,18 @@ public abstract class FacetRequest {
     public static class JoinField {
       public final String from;
       public final String to;
-      
+
       private JoinField(String from, String to) {
         assert null != from;
         assert null != to;
-        
+
         this.from = from;
         this.to = to;
       }
 
       /**
        * Given a <code>Domain</code>, and a (JSON) map specifying the configuration for that Domain,
-       * validates if a '<code>join</code>' is specified, and if so creates a <code>JoinField</code> 
+       * validates if a '<code>join</code>' is specified, and if so creates a <code>JoinField</code>
        * and sets it on the <code>Domain</code>.
        *
        * (params must not be null)
@@ -127,7 +127,7 @@ public abstract class FacetRequest {
       public static void createJoinField(FacetRequest.Domain domain, Map<String,Object> domainMap) {
         assert null != domain;
         assert null != domainMap;
-        
+
         final Object queryJoin = domainMap.get("join");
         if (null != queryJoin) {
           // TODO: maybe allow simple string (instead of map) to mean "self join on this field name" ?
@@ -136,7 +136,7 @@ public abstract class FacetRequest {
                                     "'join' domain change requires a map containing the 'from' and 'to' fields");
           }
           final Map<String,String> join = (Map<String,String>) queryJoin;
-          if (! (join.containsKey("from") && join.containsKey("to") && 
+          if (! (join.containsKey("from") && join.containsKey("to") &&
                  null != join.get("from") && null != join.get("to")) ) {
             throw new SolrException(SolrException.ErrorCode.BAD_REQUEST,
                                     "'join' domain change requires non-null 'from' and 'to' field names");
@@ -151,24 +151,24 @@ public abstract class FacetRequest {
       }
 
       /**
-       * Creates a Query that can be used to recompute the new "base" for this domain, realtive to the 
+       * Creates a Query that can be used to recompute the new "base" for this domain, realtive to the
        * current base of the FacetContext.
        */
       public Query createDomainQuery(FacetContext fcontext) throws IOException {
         // NOTE: this code lives here, instead of in FacetProcessor.handleJoin, in order to minimize
         // the number of classes that have to know about the number of possible settings on the join
         // (ie: if we add a score mode, or some other modifier to how the joins are done)
-        
+
         final SolrConstantScoreQuery fromQuery = new SolrConstantScoreQuery(fcontext.base.getTopFilter());
         // this shouldn't matter once we're wrapped in a join query, but just in case it ever does...
-        fromQuery.setCache(false); 
+        fromQuery.setCache(false);
 
         return JoinQParserPlugin.createJoinQuery(fromQuery, this.from, this.to);
       }
-      
-      
+
+
     }
-    
+
   }
 
   public FacetRequest() {
@@ -227,63 +227,13 @@ public abstract class FacetRequest {
     s += "}";
     return s;
   }
-  
+
   public abstract FacetProcessor createFacetProcessor(FacetContext fcontext);
 
   public abstract FacetMerger createFacetMerger(Object prototype);
-  
+
   public abstract Map<String, Object> getFacetDescription();
 }
-
-
-class FacetContext {
-  // Context info for actually executing a local facet command
-  public static final int IS_SHARD=0x01;
-  public static final int IS_REFINEMENT=0x02;
-  public static final int SKIP_FACET=0x04;  // refinement: skip calculating this immediate facet, but proceed to specific sub-facets based on facetInfo
-
-  Map<String,Object> facetInfo; // refinement info for this node
-  QueryContext qcontext;
-  SolrQueryRequest req;  // TODO: replace with params?
-  SolrIndexSearcher searcher;
-  Query filter;  // TODO: keep track of as a DocSet or as a Query?
-  DocSet base;
-  FacetContext parent;
-  int flags;
-  FacetDebugInfo debugInfo;
-  
-  public void setDebugInfo(FacetDebugInfo debugInfo) {
-    this.debugInfo = debugInfo;
-  }
-  
-  public FacetDebugInfo getDebugInfo() {
-    return debugInfo;
-  }
-  
-  public boolean isShard() {
-    return (flags & IS_SHARD) != 0;
-  }
-
-  /**
-   * @param filter The filter for the bucket that resulted in this context/domain.  Can be null if this is the root context.
-   * @param domain The resulting set of documents for this facet.
-   */
-  public FacetContext sub(Query filter, DocSet domain) {
-    FacetContext ctx = new FacetContext();
-    ctx.parent = this;
-    ctx.base = domain;
-    ctx.filter = filter;
-
-    // carry over from parent
-    ctx.flags = flags;
-    ctx.qcontext = qcontext;
-    ctx.req = req;
-    ctx.searcher = searcher;
-
-    return ctx;
-  }
-}
-
 
 abstract class FacetParser<FacetRequestT extends FacetRequest> {
   protected FacetRequestT facet;
@@ -469,7 +419,7 @@ abstract class FacetParser<FacetRequestT extends FacetRequest> {
           domain.toChildren = true;
           domain.parents = blockChildren;
         }
-          
+
         FacetRequest.Domain.JoinField.createJoinField(domain, domainMap);
 
         Object filterOrList = domainMap.get("filter");
